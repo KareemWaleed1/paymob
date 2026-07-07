@@ -17,11 +17,7 @@ The bank app exposes:
 POST /bank/authorize/
 ```
 
-The payment gateway calls `bank.client.authorize_payment()`. By default this uses the local simulator directly. To call an HTTP bank API instead, set `BANK_API_BASE_URL`, for example:
-
-```env
-BANK_API_BASE_URL=http://127.0.0.1:8000
-```
+The payment gateway calls `bank.client.authorize_payment()`, which uses the local bank simulator directly.
 
 ## Setup
 
