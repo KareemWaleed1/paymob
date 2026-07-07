@@ -16,6 +16,10 @@ SECRET_KEY = os.getenv("SECRET_KEY", "unsafe-dev-secret-key")
 DEBUG = os.getenv("DEBUG", "False").lower() in {"1", "true", "yes", "on"}
 
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "*").split(",")
+BANK_TRANSPORT = os.getenv("BANK_TRANSPORT", "local").lower()
+BANK_TCP_HOST = os.getenv("BANK_TCP_HOST", "127.0.0.1")
+BANK_TCP_PORT = int(os.getenv("BANK_TCP_PORT", "9000"))
+BANK_TCP_TIMEOUT_SECONDS = int(os.getenv("BANK_TCP_TIMEOUT_SECONDS", "5"))
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -59,21 +63,38 @@ TEMPLATES = [
 WSGI_APPLICATION = "paymob.wsgi.application"
 
 
-DATABASES = {
+DB_ENGINE = os.getenv("DB_ENGINE", "mysql").lower()
+
+if DB_ENGINE == "mysql":
+    DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.mysql",
-            "NAME":'paymob',
-            "HOST":'localhost',
-            "USER":'root',
-            "PASSWORD":'Kareemthedream2003'
-            
+            "NAME": os.getenv("DB_NAME", "paymob"),
+            "HOST": os.getenv("DB_HOST", "127.0.0.1"),
+            "USER": os.getenv("DB_USER", "root"),
+            "PASSWORD": os.getenv("DB_PASSWORD", ""),
+            "PORT": os.getenv("DB_PORT", "3306"),
+            "OPTIONS": {
+                "charset": "utf8mb4",
             },
         }
-    
+    }
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / os.getenv("SQLITE_NAME", "db.sqlite3"),
+        }
+    }
 
 
 if "test" in sys.argv:
-    DATABASES["default"]["NAME"] = ":memory:"
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": ":memory:",
+        }
+    }
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},

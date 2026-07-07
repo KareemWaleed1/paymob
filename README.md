@@ -17,7 +17,66 @@ The bank app exposes:
 POST /bank/authorize/
 ```
 
-The payment gateway calls `bank.client.authorize_payment()`, which uses the local bank simulator directly.
+The payment gateway calls `bank.client.authorize_payment()`. By default it uses the
+local bank simulator directly, but it can also talk to a separate bank process over
+normal TCP sockets.
+
+## Bank TCP Socket Flow
+
+This project supports a lower-level bank transport that sends plain character
+streams over TCP. The data format is the same shape as URL query parameters:
+
+```text
+transaction_id=1&merchant_id=1&terminal_id=1&amount=500.00&currency=EGP
+```
+
+Each TCP message ends with a newline character. That final `\n` is important:
+TCP is a stream of bytes, not a request/response protocol, so the newline is how
+both sides know where one message ends.
+
+The gateway sends:
+
+```text
+transaction_id=1&merchant_id=1&terminal_id=1&amount=500.00&currency=EGP\n
+```
+
+The bank TCP server responds:
+
+```text
+ok=true&bank_response=APPROVED&bank_reference=BANK-ABC123\n
+```
+
+To use TCP, start the bank socket server in one terminal:
+
+```bash
+python manage.py run_bank_tcp_server
+```
+
+Then set the gateway transport in `.env`:
+
+```env
+BANK_TRANSPORT=tcp
+BANK_TCP_HOST=127.0.0.1
+BANK_TCP_PORT=9000
+BANK_TCP_TIMEOUT_SECONDS=5
+```
+
+Start Django in another terminal:
+
+```bash
+python manage.py runserver
+```
+
+The full flow is:
+
+1. A merchant calls `POST /pay`.
+2. Django creates the order and transaction.
+3. `bank.client.authorize_payment()` converts the transaction fields into a query-parameter string.
+4. The client opens a TCP connection to `BANK_TCP_HOST:BANK_TCP_PORT`.
+5. The client sends the encoded string plus `\n`.
+6. The bank TCP server reads until `\n`, parses the parameters, validates them, and runs the simulator.
+7. The bank TCP server sends back another query-parameter string plus `\n`.
+8. The payment gateway parses the response and stores `bank_response` and `bank_reference` on the transaction.
 
 ## Setup
 
